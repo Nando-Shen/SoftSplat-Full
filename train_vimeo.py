@@ -45,12 +45,17 @@ def train():
     optimizer = Adam(model.parameters(), lr=args.lr)
 
     # dataset
-    train_data = Vimeo90k(args.data_path)
-    test_data = Vimeo90k(args.data_path, is_train=False)
-    ipe = len(train_data) // args.batch_size
+    # train_data = Vimeo90k(args.data_path)
+    # test_data = Vimeo90k(args.data_path, is_train=False)
+
+
+    # train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=8)
+    # valid_loader = DataLoader(test_data, batch_size=args.valid_batch_size, shuffle=False, num_workers=2)
+    from atd12k import get_loader
+    train_loader, length_train = get_loader('train', args.data_path, args.batch_size, shuffle=True)
+    valid_loader, _ = get_loader('test', args.data_path, args.valid_batch_size, shuffle=False)
+    ipe = length_train // args.batch_size
     print('iterations per epoch:', ipe)
-    train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=8)
-    valid_loader = DataLoader(test_data, batch_size=args.valid_batch_size, shuffle=False, num_workers=2)
 
     # loss
     best = 0
