@@ -41,7 +41,7 @@ class BackWarp(nn.Module):
 
 
 class SoftSplatBaseline(nn.Module):
-    def __init__(self, predefined_z=False, act=nn.PReLU):
+    def __init__(self, predefined_z=True, act=nn.PReLU):
         super(SoftSplatBaseline, self).__init__()
         self.flow_predictor = PWCNet()
         self.flow_predictor.load_state_dict(torch.load('./OpticalFlow/pwc-checkpoint.pt'))
