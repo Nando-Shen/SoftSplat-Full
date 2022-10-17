@@ -72,7 +72,7 @@ class SoftSplatBaseline(nn.Module):
         if predefined_z:
             self.alpha = nn.Parameter(-torch.ones(1))
         else:
-            self.v_net = SmallUNet()
+            self.v_net = UNet()
 
     def forward(self, x, target_t):
         target_t = target_t.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
