@@ -3,7 +3,7 @@ import torch.nn as nn
 from OpticalFlow.PWCNet import PWCNet
 from softsplat import Softsplat
 from GridNet import GridNet
-from UNet import SmallUNet
+from UNet import UNet
 from torch.nn.functional import interpolate, grid_sample
 from einops import repeat
 
