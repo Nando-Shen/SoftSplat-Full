@@ -2,8 +2,6 @@ import os
 from torchvision.transforms.functional import to_pil_image
 import torch
 from tqdm import tqdm
-from lpips import LPIPS
-from DISTS_pytorch import DISTS
 from pytorch_msssim import SSIM, MS_SSIM
 
 
@@ -16,8 +14,6 @@ class Evaluate:
         self.get_psnr = PSNR()
         self.get_ssim = SSIM(size_average=False, channel=1, nonnegative_ssim=True)
         self.get_msssim = MS_SSIM(size_average=False, channel=1)
-        self.get_lpips = LPIPS().to('cuda' if torch.cuda.is_available() else 'cpu')
-        self.get_dists = DISTS().to('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.scaler = 255.0
         self.filter = torch.tensor([[65.481], [128.553], [24.966]]) / 255.
@@ -43,8 +39,6 @@ class Evaluate:
             scores['psnr'] = self.get_psnr(pred_uint8, gt_uint8)
             scores['ssim'] = self.get_ssim(pred_y, gt_y)
             scores['ms_ssim'] = self.get_msssim(pred_y, gt_y)
-            scores['lpips'] = self.get_lpips(pred, gt, normalize=True)
-            scores['dists'] = self.get_dists(pred, gt)
         return scores
 
 
@@ -62,8 +56,6 @@ def validation(model, dataloader, valid_path, ep):
     scores['psnr'] = 0
     scores['ssim'] = 0
     scores['ms_ssim'] = 0
-    scores['lpips'] = 0
-    scores['dists'] = 0
     n_samples = 0
     ep = ep + 1  # add 1 to make it intuitive
 
@@ -93,7 +85,7 @@ def validation(model, dataloader, valid_path, ep):
     torch.cuda.empty_cache()
     for key, value in scores.items():
         scores[key] = value / n_samples
-    print(f"Validation at Epoch {ep} === PSNR: {scores['psnr'].item():.2f}\tSSIM: {scores['ssim'].item():.4f}\tMS-SSIM: {scores['ms_ssim'].item():.4f}\nLPIPS: {scores['lpips'].item():.4f}\tDISTS: {scores['dists'].item():.4f}")
+    print(f"Validation at Epoch {ep} === PSNR: {scores['psnr'].item():.2f}\tSSIM: {scores['ssim'].item():.4f}\tMS-SSIM: {scores['ms_ssim'].item():.4f}\n")
     model.train()
     return scores, cur_valid_path
 
