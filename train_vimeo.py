@@ -10,7 +10,7 @@ from SoftSplatModel import SoftSplatBaseline
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import shutil
-from validation import Vimeo_PSNR as validate
+from validation import validation
 from ReconLoss import LaplacianLoss, CensusLoss
 
 
