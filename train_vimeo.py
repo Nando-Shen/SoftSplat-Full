@@ -120,7 +120,7 @@ def train():
 
         epoch_train_loss /= ipe
         torch.cuda.empty_cache()
-        valid_scores, cur_val_path = validate(model, valid_loader, valid_path, epoch)
+        valid_scores, cur_val_path = validation(model, valid_loader, valid_path, epoch)
         torch.cuda.empty_cache()
         writer.add_scalar('PSNR', valid_scores['psnr'], epoch)
         writer.add_scalar(f'Train', epoch_train_loss, epoch)
@@ -139,7 +139,7 @@ def train():
     print('end of training.')
     print('final validation.')
     torch.cuda.empty_cache()
-    valid_psnr, valid_loss, cur_val_path = validate(model, valid_loader, valid_path, args.n_epochs)
+    valid_psnr, valid_loss, cur_val_path = validation(model, valid_loader, valid_path, args.n_epochs)
     torch.cuda.empty_cache()
     writer.add_scalar('PSNR', valid_psnr, args.n_epochs)
     if valid_psnr > best:
