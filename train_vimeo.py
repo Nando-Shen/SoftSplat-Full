@@ -123,6 +123,7 @@ def train():
         valid_scores, cur_val_path = validation(model, valid_loader, valid_path, epoch)
         torch.cuda.empty_cache()
         writer.add_scalar('PSNR', valid_scores['psnr'], epoch)
+        valid_psnr =  valid_scores['psnr']
         writer.add_scalar(f'Train', epoch_train_loss, epoch)
         if valid_psnr > best:
             best = valid_psnr
