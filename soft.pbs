@@ -13,3 +13,6 @@ conda activate soft
 module load cuda/10.2.89
 conda install -c conda-forge cupy
 
+python train_vimeo.py --batch_size 4 --valid_batch_size 6 --data_path /share/jshe2377/atd12k_points
+
+qsub -IXP VUR -l select=1:ncpus=4:ngpus=1:mem=16GB, walltime=01:00:00
