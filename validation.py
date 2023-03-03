@@ -1,7 +1,7 @@
-import os
-from torchvision.transforms.functional import to_pil_image
 import torch
 from tqdm import tqdm
+from lpips import LPIPS
+from DISTS_pytorch import DISTS
 from pytorch_msssim import SSIM, MS_SSIM
 
 
@@ -14,6 +14,8 @@ class Evaluate:
         self.get_psnr = PSNR()
         self.get_ssim = SSIM(size_average=False, channel=1, nonnegative_ssim=True)
         self.get_msssim = MS_SSIM(size_average=False, channel=1)
+        self.get_lpips = LPIPS().to('cuda' if torch.cuda.is_available() else 'cpu')
+        self.get_dists = DISTS().to('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.scaler = 255.0
         self.filter = torch.tensor([[65.481], [128.553], [24.966]]) / 255.
@@ -39,6 +41,8 @@ class Evaluate:
             scores['psnr'] = self.get_psnr(pred_uint8, gt_uint8)
             scores['ssim'] = self.get_ssim(pred_y, gt_y)
             scores['ms_ssim'] = self.get_msssim(pred_y, gt_y)
+            scores['lpips'] = self.get_lpips(pred, gt, normalize=True)
+            scores['dists'] = self.get_dists(pred, gt)
         return scores
 
 
@@ -50,42 +54,49 @@ class PSNR:
         return 10 * torch.log10((255. ** 2) / mse)
 
 
-def validation(model, dataloader, valid_path, ep):
+def validation(model, dataloader, writer, ep):
     model.eval()
     scores = dict()
     scores['psnr'] = 0
     scores['ssim'] = 0
     scores['ms_ssim'] = 0
+    scores['lpips'] = 0
+    scores['dists'] = 0
     n_samples = 0
-    ep = ep + 1  # add 1 to make it intuitive
 
-    cur_valid_path = os.path.join(valid_path, f'{ep}')
-    os.makedirs(cur_valid_path, exist_ok=True)
     get_scores = Evaluate()
-
     torch.cuda.empty_cache()
-    for i, data in enumerate(tqdm(dataloader)):
-        input_frames, target_frames, target_t, name = data
-        input_frames = input_frames.cuda().float()
-        target_frames = target_frames.cuda().float()
-        target_t = target_t.cuda().float()
-        b = target_frames.shape[0]
-        n_samples += b
+    with torch.no_grad():
+        for i, data in enumerate(tqdm(dataloader)):
+            input_frames, target_frames, target_t, name = data
+            input_frames = input_frames.cuda().float()
+            target_frames = target_frames.cuda().float()
+            target_t = target_t.cuda().float()
+            n_samples += target_frames.shape[0]
 
-        with torch.no_grad():
             pred = model(input_frames, target_t)
-            iter_scores = get_scores(pred, target_frames)
-            for key, value in iter_scores.items():
+            current_scores = get_scores(pred, target_frames)
+            for key, value in current_scores.items():
                 scores[key] += value.sum()
 
             # save reconstructed image
-            for i in range(b):
-                to_pil_image(pred[i].cpu()).save(os.path.join(cur_valid_path, f'{name[i]}.png'))
-
+            if i < 10:
+                writer.add_images(f'Validation Batch {i:04d} Pred', pred, ep)
+                if ep == 0:
+                    writer.add_images(f'Validation Batch {i:04d} GT/Inputs', input_frames.sum(dim=2) * 0.5, 0)
+                    writer.add_images(f'Validation Batch {i:04d} GT', target_frames, 0)
     torch.cuda.empty_cache()
     for key, value in scores.items():
         scores[key] = value / n_samples
-    print(f"Validation at Epoch {ep} === PSNR: {scores['psnr'].item():.2f}\tSSIM: {scores['ssim'].item():.4f}\tMS-SSIM: {scores['ms_ssim'].item():.4f}\n")
+
+    writer.add_scalar('Eval/PSNR', scores['psnr'], ep)
+    writer.add_scalar('Eval/SSIM', scores['ssim'], ep)
+    writer.add_scalar('Eval/MS-SSIM', scores['ms_ssim'], ep)
+    writer.add_scalar('Eval/LPIPS', scores['lpips'], ep)
+    writer.add_scalar('Eval/DISTS', scores['dists'], ep)
+    
+    print(f"Validation at Epoch {ep} === PSNR: {scores['psnr'].item():.2f}\tSSIM: {scores['ssim'].item():.4f}\tMS-SSIM: {scores['ms_ssim'].item():.4f}\nLPIPS: {scores['lpips'].item():.4f}\tDISTS: {scores['dists'].item():.4f}")
+    print('=======================================\n\n')
     model.train()
-    return scores, cur_valid_path
+    return scores
 
